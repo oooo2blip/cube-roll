@@ -372,27 +372,11 @@ export default class GameEngine {
     if (!this.state.isRunning) return
 
     const currentTime = performance.now()
-    const deltaTime = Math.min((currentTime - this.state.lastTime) / 1000, 0.1)
     this.state.lastTime = currentTime
-
-    if (!this.state.isPaused) {
-      this.physicsEngine.update(deltaTime)
-      this.syncPhysicsToRender()
-    }
 
     this.renderer.render()
 
     this.state.animationId = requestAnimationFrame(() => this.gameLoop())
-  }
-
-  private syncPhysicsToRender(): void {
-    if (this.state.cube) {
-      const body = this.state.cube.getBody()
-      const mesh = this.state.cube.getMesh()
-      
-      mesh.position.copy(body.position as any)
-      mesh.quaternion.copy(body.quaternion as any)
-    }
   }
 
   pause(): void {

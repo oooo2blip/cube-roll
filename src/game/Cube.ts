@@ -197,12 +197,8 @@ export default class Cube {
         duration: 0.3,
         ease: 'power2.inOut',
         onUpdate: (progress: number) => {
-          THREE.Quaternion.slerpQuaternions(
-            startQuaternion,
-            targetQuaternion,
-            this.mesh.quaternion,
-            progress
-          )
+          const interpolated = startQuaternion.clone().slerp(targetQuaternion, progress)
+          this.mesh.quaternion.copy(interpolated)
         },
         onComplete: () => {
           this.mesh.quaternion.copy(targetQuaternion)
