@@ -1,11 +1,14 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import ThirdPersonCamera from './ThirdPersonCamera'
 
 export default class Renderer {
   private scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private renderer: THREE.WebGLRenderer
   private controls: OrbitControls
+  private thirdPersonCamera: ThirdPersonCamera | null = null
+  private useThirdPersonCamera: boolean = false
   private container: HTMLElement
   private objects: Map<string, THREE.Object3D> = new Map()
   private materials: Map<string, THREE.Material> = new Map()
@@ -36,6 +39,8 @@ export default class Renderer {
     this.controls.minDistance = 10
     this.controls.maxDistance = 50
     this.controls.enablePan = false
+
+    this.thirdPersonCamera = new ThirdPersonCamera(this.camera)
 
     this.setupLights()
 
@@ -109,8 +114,34 @@ export default class Renderer {
     this.controls.update()
   }
 
+  enableThirdPersonCamera(enable: boolean): void {
+    this.useThirdPersonCamera = enable
+    if (enable) {
+      this.controls.enabled = false
+    } else {
+      this.controls.enabled = true
+    }
+  }
+
+  setCameraTarget(target: THREE.Object3D | null): void {
+    if (this.thirdPersonCamera) {
+      this.thirdPersonCamera.setTarget(target)
+      if (target) {
+        this.thirdPersonCamera.reset()
+      }
+    }
+  }
+
+  updateCamera(): void {
+    if (this.useThirdPersonCamera && this.thirdPersonCamera) {
+      this.thirdPersonCamera.update()
+    } else {
+      this.controls.update()
+    }
+  }
+
   render(): void {
-    this.controls.update()
+    this.updateCamera()
     this.renderer.render(this.scene, this.camera)
   }
 

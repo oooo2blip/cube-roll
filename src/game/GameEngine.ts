@@ -307,13 +307,8 @@ export default class GameEngine {
     this.state.cube = new Cube(startPos, this.tileSize)
     this.renderer.addObject('player_cube', this.state.cube.getMesh())
 
-    const center = this.calculateLevelCenter(levelData)
-    this.renderer.setCameraPosition(
-      center.x + 12,
-      center.y + 15,
-      center.z + 12,
-      center
-    )
+    this.renderer.setCameraTarget(this.state.cube.getMesh())
+    this.renderer.enableThirdPersonCamera(true)
 
     this.emit('keysChanged', this.state.keysCollected, this.state.totalKeys)
 
@@ -346,6 +341,9 @@ export default class GameEngine {
   }
 
   private clearLevel(): void {
+    this.renderer.enableThirdPersonCamera(false)
+    this.renderer.setCameraTarget(null)
+
     this.state.tiles.forEach((tile) => {
       this.renderer.removeObject(tile.id)
     })
