@@ -145,9 +145,9 @@ export default class GameEngine {
 
     const currentPos = this.state.cube.getPosition()
     const currentGridPos = {
-      x: Math.round(currentPos.x / this.tileSize),
-      y: Math.round(currentPos.y / this.tileSize),
-      z: Math.round(currentPos.z / this.tileSize)
+      x: Math.floor(currentPos.x / this.tileSize + 0.5),
+      y: Math.floor(currentPos.y / this.tileSize),
+      z: Math.floor(currentPos.z / this.tileSize + 0.5)
     }
 
     const delta = {
@@ -184,7 +184,7 @@ export default class GameEngine {
 
     const targetPosition = {
       x: targetGridPos.x * this.tileSize,
-      y: targetGridPos.y * this.tileSize + this.tileSize / 2,
+      y: targetGridPos.y * this.tileSize + this.tileSize * 0.7,
       z: targetGridPos.z * this.tileSize
     }
 
@@ -211,8 +211,16 @@ export default class GameEngine {
           const linkedIds = tile.getLinkedTiles ? tile.getLinkedTiles() : []
           linkedIds.forEach((id) => {
             const linkedTile = this.state.tiles.get(id)
-            if (linkedTile && linkedTile.activate) {
-              linkedTile.activate()
+            if (linkedTile) {
+              if (linkedTile.type === TileType.COLOR_BARRIER) {
+                if (linkedTile.deactivate) {
+                  linkedTile.deactivate()
+                }
+              } else {
+                if (linkedTile.activate) {
+                  linkedTile.activate()
+                }
+              }
             }
           })
         }
@@ -243,7 +251,7 @@ export default class GameEngine {
           
           const targetPos = {
             x: targetPortal.position.x,
-            y: targetPortal.position.y + this.tileSize / 2,
+            y: targetPortal.position.y + this.tileSize * 0.6,
             z: targetPortal.position.z
           }
           
@@ -266,9 +274,9 @@ export default class GameEngine {
 
   private getTileAt(x: number, y: number, z: number): Tile | undefined {
     for (const tile of this.state.tiles.values()) {
-      const tileX = Math.round(tile.position.x / this.tileSize)
-      const tileY = Math.round(tile.position.y / this.tileSize)
-      const tileZ = Math.round(tile.position.z / this.tileSize)
+      const tileX = Math.floor(tile.position.x / this.tileSize + 0.5)
+      const tileY = Math.floor(tile.position.y / this.tileSize)
+      const tileZ = Math.floor(tile.position.z / this.tileSize + 0.5)
       
       if (tileX === x && tileY === y && tileZ === z) {
         return tile
@@ -300,7 +308,7 @@ export default class GameEngine {
 
     const startPos = {
       x: levelData.startPosition.x * this.tileSize,
-      y: levelData.startPosition.y * this.tileSize + this.tileSize / 2,
+      y: levelData.startPosition.y * this.tileSize + this.tileSize * 0.7,
       z: levelData.startPosition.z * this.tileSize
     }
 
@@ -370,7 +378,19 @@ export default class GameEngine {
     if (!this.state.isRunning) return
 
     const currentTime = performance.now()
+    const deltaTime = (currentTime - this.state.lastTime) / 1000
     this.state.lastTime = currentTime
+
+    if (!this.state.isPaused) {
+      this.physicsEngine.update(deltaTime)
+
+      if (this.state.cube) {
+        const mesh = this.state.cube.getMesh()
+        const body = this.state.cube.getBody()
+        body.position.copy(mesh.position as any)
+        body.quaternion.copy(mesh.quaternion as any)
+      }
+    }
 
     this.renderer.render()
 

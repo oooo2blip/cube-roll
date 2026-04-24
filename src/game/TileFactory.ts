@@ -64,7 +64,7 @@ export default class TileFactory {
     const materials = this.createStandardMaterials()
     const position = {
       x: tileData.x * tileSize,
-      y: tileData.y * tileSize - tileSize / 4,
+      y: tileData.y * tileSize + tileSize * 0.1,
       z: tileData.z * tileSize
     }
 

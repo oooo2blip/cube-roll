@@ -256,17 +256,34 @@ export default class Cube {
 
   playFallAnimation(): Promise<void> {
     return new Promise((resolve) => {
+      const startY = this.mesh.position.y
+      const targetY = startY - 10
+      
+      const startQuaternion = this.mesh.quaternion.clone()
+      
+      const rotationX = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(1, 0, 0),
+        Math.PI * 2
+      )
+      const rotationZ = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(0, 0, 1),
+        Math.PI * 2
+      )
+      const targetQuaternion = rotationZ.multiply(rotationX).multiply(startQuaternion)
+
       gsap.to(this.mesh.position, {
-        y: this.mesh.position.y - 10,
+        y: targetY,
         duration: 0.8,
         ease: 'power2.in'
       })
       
-      gsap.to(this.mesh.rotation, {
-        x: this.mesh.rotation.x + Math.PI * 2,
-        z: this.mesh.rotation.z + Math.PI * 2,
+      gsap.to({}, {
         duration: 0.8,
         ease: 'power2.in',
+        onUpdate: (progress: number) => {
+          const interpolated = startQuaternion.clone().slerp(targetQuaternion, progress)
+          this.mesh.quaternion.copy(interpolated)
+        },
         onComplete: resolve
       })
     })
