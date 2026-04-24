@@ -6,24 +6,30 @@ export default class ThirdPersonCamera {
   private currentPosition: THREE.Vector3
   private targetPosition: THREE.Vector3
   private smoothingFactor: number
-  private distance: number
-  private heightOffset: number
+  private baseDistance: number
+  private baseHeightOffset: number
   private angleOffset: number
   private minHeight: number
-  private heightAdaptationThreshold: number
-  private heightAdaptationSpeed: number
+  private heightAdjustThreshold: number
+  private distanceIncreaseFactor: number
+  private heightOffsetDecreaseFactor: number
+  private maxDistanceMultiplier: number
+  private minHeightOffsetMultiplier: number
 
   constructor(camera: THREE.PerspectiveCamera) {
     this.camera = camera
     this.currentPosition = new THREE.Vector3()
     this.targetPosition = new THREE.Vector3()
     this.smoothingFactor = 0.08
-    this.distance = 12
-    this.heightOffset = 8
+    this.baseDistance = 12
+    this.baseHeightOffset = 8
     this.angleOffset = Math.PI / 4
     this.minHeight = 5
-    this.heightAdaptationThreshold = 3
-    this.heightAdaptationSpeed = 0.1
+    this.heightAdjustThreshold = 2
+    this.distanceIncreaseFactor = 1.5
+    this.heightOffsetDecreaseFactor = 0.3
+    this.maxDistanceMultiplier = 2.5
+    this.minHeightOffsetMultiplier = 0.3
 
     this.currentPosition.copy(camera.position)
   }
@@ -37,11 +43,11 @@ export default class ThirdPersonCamera {
   }
 
   setDistance(distance: number): void {
-    this.distance = distance
+    this.baseDistance = distance
   }
 
   setHeightOffset(offset: number): void {
-    this.heightOffset = offset
+    this.baseHeightOffset = offset
   }
 
   update(): void {
@@ -50,16 +56,17 @@ export default class ThirdPersonCamera {
     const targetWorldPos = new THREE.Vector3()
     this.target.getWorldPosition(targetWorldPos)
 
-    const angle = this.angleOffset
-    const offsetX = Math.sin(angle) * this.distance
-    const offsetZ = Math.cos(angle) * this.distance
+    const { distance, heightOffset } = this.calculateDynamicParams(targetWorldPos.y)
 
-    const baseHeight = targetWorldPos.y + this.heightOffset
-    const adaptedHeight = this.calculateAdaptedHeight(targetWorldPos.y)
+    const angle = this.angleOffset
+    const offsetX = Math.sin(angle) * distance
+    const offsetZ = Math.cos(angle) * distance
+
+    const cameraY = targetWorldPos.y + heightOffset
 
     this.targetPosition.set(
       targetWorldPos.x + offsetX,
-      Math.max(baseHeight, adaptedHeight, this.minHeight),
+      Math.max(cameraY, this.minHeight),
       targetWorldPos.z + offsetZ
     )
 
@@ -69,16 +76,21 @@ export default class ThirdPersonCamera {
     this.camera.lookAt(targetWorldPos)
   }
 
-  private calculateAdaptedHeight(targetY: number): number {
-    const cameraCurrentY = this.currentPosition.y
-    const targetHeight = targetY + this.heightOffset
+  private calculateDynamicParams(targetY: number): { distance: number; heightOffset: number } {
+    let distance = this.baseDistance
+    let heightOffset = this.baseHeightOffset
 
-    if (targetY > this.heightAdaptationThreshold) {
-      const additionalHeight = (targetY - this.heightAdaptationThreshold) * 0.8
-      return targetHeight + additionalHeight
+    if (targetY > this.heightAdjustThreshold) {
+      const heightDelta = targetY - this.heightAdjustThreshold
+
+      distance = this.baseDistance + heightDelta * this.distanceIncreaseFactor
+      distance = Math.min(distance, this.baseDistance * this.maxDistanceMultiplier)
+
+      heightOffset = this.baseHeightOffset - heightDelta * this.heightOffsetDecreaseFactor
+      heightOffset = Math.max(heightOffset, this.baseHeightOffset * this.minHeightOffsetMultiplier)
     }
 
-    return targetHeight
+    return { distance, heightOffset }
   }
 
   getCameraPosition(): THREE.Vector3 {
@@ -91,12 +103,12 @@ export default class ThirdPersonCamera {
       this.target.getWorldPosition(targetWorldPos)
 
       const angle = this.angleOffset
-      const offsetX = Math.sin(angle) * this.distance
-      const offsetZ = Math.cos(angle) * this.distance
+      const offsetX = Math.sin(angle) * this.baseDistance
+      const offsetZ = Math.cos(angle) * this.baseDistance
 
       this.currentPosition.set(
         targetWorldPos.x + offsetX,
-        targetWorldPos.y + this.heightOffset,
+        targetWorldPos.y + this.baseHeightOffset,
         targetWorldPos.z + offsetZ
       )
 
